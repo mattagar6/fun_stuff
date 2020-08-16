@@ -39,7 +39,7 @@ struct V {
 
     // helper functions
     int index(int i, int j) const;
-    int high(int x) const ;
+    int high(int x) const;
     int low(int x) const;
 
     void insert(int x); // assumes x not in VEB
