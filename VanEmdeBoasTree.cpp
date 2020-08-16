@@ -64,7 +64,7 @@ V::~V() {
     for (V* v : block) delete v;
 }
 
-int V::index(int i, int j) const { return i * (1 << B) + j; }
+int V::index(int i, int j) const { return i << B | j; }
 int V::high(int x) const { return x >> B; }
 int V::low(int x) const { return x & ((1 << B) - 1); }
 
@@ -231,7 +231,7 @@ long long check_performance_BST(int U, int insertions, int erases, int successor
 
     for (int i = 0; i < successors; i++) {
         int ord = s.order_of_key(rand() % U);
-        if (ord < s.size() - 1) {
+        if (ord < (int) s.size() - 1) {
             ans += *s.find_by_order(ord + 1); // next biggest element
         } else {
             ans += -1;
