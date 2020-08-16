@@ -44,8 +44,8 @@ struct V {
 
     void insert(int x); // assumes x not in VEB
     void erase(int x);
-    int successor(int x); // returns -1 if x has no successor
-
+    int successor(int x) const; // returns -1 if x has no successor
+    bool contains(int x) const;
 };
 
 V::V(int bits) : U(1 << bits), B(bits >> 1), min(-1), max(-1), small(0), summary(nullptr) {
@@ -134,7 +134,7 @@ void V::erase(int x) {
     }
 }
 
-int V::successor(int x) {
+int V::successor(int x) const {
     assert(0 <= x && x < U);
 
     if (x < min) return min;
@@ -160,6 +160,10 @@ int V::successor(int x) {
     return index(i, j);
 }
 
+bool V::contains(int x) const {
+    return x == min || (U < SMALL ? small >> x & 1 : block[high(x)]->contains(low(x)));
+}
+
 ////////////////////////////////////////////////////////////////////
 
 int getSuccessor(const std::vector<int>& a, int x) {
@@ -183,8 +187,9 @@ bool check_correctness(int U, int numInserted) {
     std::vector<int> inserted(numInserted);
     for (int i = 0; i < numInserted; i++) {
         inserted[i] = rand() % U;
-        if (table[inserted[i]] == 0)
+        if (!VEB->contains(inserted[i]))
             VEB->insert(inserted[i]);
+        else assert(table[inserted[i]] == 1);
         table[inserted[i]] = 1;
     }
 
@@ -250,9 +255,9 @@ long long check_performance_VEB(int U, int insertions, int erases, int successor
     V* VEB = new V(bits);
 
     for (int i = 0; i < insertions; i++) {
-        int x = rand() % (U - 1) + 1;
-        if (VEB->successor(x-1) == x) continue; // already present in VEB
-        VEB->insert(x);
+        int x = rand() % U;
+        if (!VEB->contains(x))
+            VEB->insert(x);
     }
 
     for (int i = 0; i < erases; i++) {
@@ -270,7 +275,6 @@ long long check_performance_VEB(int U, int insertions, int erases, int successor
 
 int main(int argc, char* argv[]) {
     srand(time(nullptr));
-
 //    for (int i = 0; i < 100; i++) {
 //        std::cout << "Test #" << i << std::endl;
 //        if (!check_correctness(5000, rand() % 1000)) {
@@ -281,5 +285,6 @@ int main(int argc, char* argv[]) {
 
 //    std::cout << check_performance_BST(5e7, 1e7, 1e7, 1e7) << std::endl; // approx. 60 seconds on my laptop
     std::cout << check_performance_VEB(5e7, 1e7, 1e7, 1e7) << std::endl; // approx. 13 seconds on my laptop
+        
     return 0;
 }
