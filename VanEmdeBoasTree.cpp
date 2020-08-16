@@ -1,6 +1,5 @@
 #include <iostream>
 #include <vector>
-#include <cmath>
 #include <cassert>
 
 #define NDEBUG
@@ -22,9 +21,10 @@ typedef __gnu_pbds::tree<
 // My homemade Van Emde Boas tree
 // Handles insertion, deletion, successor of integer keys in O(log log U) time,
 // where all integer keys lie in { 0, 1, 2, ..., U-1 }. O(U) space required.
+// Assumes U is a power of 2
 // Status: Stress Tested
 
-#define SMALL 32
+#define SMALL (1 << 5)
 
 struct V {
     int U, B; // universe size, block size
@@ -34,7 +34,7 @@ struct V {
     V* summary;
     std::vector<V*> block;
 
-    explicit V(int size);
+    explicit V(int bits);
     ~V();
 
     // helper functions
@@ -48,16 +48,14 @@ struct V {
 
 };
 
-V::V(int size) : U(size), B(sqrt(U)), min(-1), max(-1), small(0), summary(nullptr) {
+V::V(int bits) : U(1 << bits), B(bits >> 1), min(-1), max(-1), small(0), summary(nullptr) {
     if (U >= SMALL) {
-        int blocks = B;
 
-        while (blocks * B < U) ++blocks;
+        int B2 = (bits + 1) >> 1;
+        block.resize((1 << B2), nullptr);
+        for (int i = 0; i < (1 << B2); i++) block[i] = new V(B);
 
-        block.resize(blocks, nullptr);
-        for (int i = 0; i < blocks; i++) block[i] = new V(B);
-
-        summary = new V(blocks);
+        summary = new V(B2);
     }
 }
 
@@ -66,9 +64,9 @@ V::~V() {
     for (V* v : block) delete v;
 }
 
-int V::index(int i, int j) const { return i * B + j; }
-int V::high(int x) const { return x / B; }
-int V::low(int x) const { return x % B; }
+int V::index(int i, int j) const { return i * (1 << B) + j; }
+int V::high(int x) const { return x >> B; }
+int V::low(int x) const { return x & ((1 << B) - 1); }
 
 void V::insert(int x) {
     assert(0 <= x && x < U);
@@ -87,7 +85,6 @@ void V::insert(int x) {
     }
 
     int i = high(x), j = low(x);
-
     if (block[i]->min == -1)
         summary->insert(i);
 
@@ -178,7 +175,9 @@ int getSuccessor(const std::vector<int>& a, int x) {
 // direct access table uses a linear scan to find successor
 bool check_correctness(int U, int numInserted) {
 
-    V* VEB = new V(U);
+    int bits = 0;
+    while ((1 << bits) < U) ++bits;
+    V* VEB = new V(bits);
     std::vector<int> table(U);
 
     std::vector<int> inserted(numInserted);
@@ -246,7 +245,9 @@ long long check_performance_BST(int U, int insertions, int erases, int successor
 long long check_performance_VEB(int U, int insertions, int erases, int successors) {
     long long ans = 0;
 
-    V* VEB = new V(U);
+    int bits = 0;
+    while ((1 << bits) < U) ++bits;
+    V* VEB = new V(bits);
 
     for (int i = 0; i < insertions; i++) {
         int x = rand() % (U - 1) + 1;
@@ -278,7 +279,7 @@ int main(int argc, char* argv[]) {
 //        }
 //    }
 
-//    std::cout << check_performance_BST(1e8, 1e7, 1e7, 1e7) << std::endl; // approx. 60 seconds on my laptop
-    std::cout << check_performance_VEB(1e8, 1e7, 1e7, 1e7) << std::endl; // approx. 15 seconds on my laptop
+//    std::cout << check_performance_BST(5e7, 1e7, 1e7, 1e7) << std::endl; // approx. 60 seconds on my laptop
+    std::cout << check_performance_VEB(5e7, 1e7, 1e7, 1e7) << std::endl; // approx. 13 seconds on my laptop
     return 0;
 }
